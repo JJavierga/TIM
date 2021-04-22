@@ -80,7 +80,8 @@ class Evaluator:
         classes =  {'nodefect':0, 'scaling':1, 'efflorescence':2, 'cracks':3, 'spalling':4}
         right_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
         total_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
-        with open("/home/grvc/programming/ml/TIM/split/mini_5_reduced/query.csv") as csv_file:
+        inv_map = {v: k for k, v in classes.items()}
+        with open(os.path.join(target_split_dir, "query.csv")) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
             for row in csv_reader:
@@ -89,6 +90,8 @@ class Evaluator:
                 else:
                     if classes[row[1]]==logs[0][line_count-1]:
                         right_elems[row[1]]+=1
+                    else:
+                        print("Confused {} with {} \t {}".format(row[1], inv_map[logs[0][line_count-1]], row[0]))
                     total_elems[row[1]]+=1
                 line_count += 1
 
@@ -99,8 +102,6 @@ class Evaluator:
             global_right+=right_elems[class_i]
         print('Global accuracy: {:.4f}'.format(global_right/line_count))
 
-        
-        print('==> Meta Test: {} \nfeature\tL2N\n{}-shot)'.format(model_tag.upper(), shots) )
         return results
 
     def run_task(self, task_dic, model, callback):
