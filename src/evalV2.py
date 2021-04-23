@@ -34,7 +34,7 @@ class Evaluator:
         self.ex = ex
 
     @eval_ingredient.capture
-    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback):
+    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir):
         """
         Run the evaluation over all the tasks in parallel
         inputs:
@@ -76,7 +76,6 @@ class Evaluator:
                                 callback=callback)
 
 
-        print(logs[0])
         classes =  {'nodefect':0, 'scaling':1, 'efflorescence':2, 'cracks':3, 'spalling':4}
         right_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
         total_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
@@ -94,6 +93,7 @@ class Evaluator:
                         print("Confused {} with {} \t {}".format(row[1], inv_map[logs[0][line_count-1]], row[0]))
                     total_elems[row[1]]+=1
                 line_count += 1
+
 
         print(f'Processed {line_count-1} images.')   
         global_right=0    
