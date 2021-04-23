@@ -11,3 +11,4 @@ python3 -m src.mainV2 \
 		tim.iter=1000 \
 		eval.method='tim_gd' \
 		eval.target_split_dir="split/mini_5" \
+		eval.checking=False \

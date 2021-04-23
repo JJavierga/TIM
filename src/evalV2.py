@@ -25,6 +25,7 @@ def config():
     shots = 5 #[1, 5]
     used_set = 'test'  # can also be val for hyperparameter tuning
     fresh_start = True
+    checking = True
 
 
 class Evaluator:
@@ -34,7 +35,7 @@ class Evaluator:
         self.ex = ex
 
     @eval_ingredient.capture
-    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir):
+    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir, checking):
         """
         Run the evaluation over all the tasks in parallel
         inputs:
@@ -71,36 +72,57 @@ class Evaluator:
                                     extracted_features_queries_dic=extracted_features_queries_dic, 
                                     shot=shots)
 
-        logs = self.run_task(task_dic=tasks,
+        logs_prob, logs_y = self.run_task(task_dic=tasks,
                                 model=model,
                                 callback=callback)
-
-
+    
         classes =  {'nodefect':0, 'scaling':1, 'efflorescence':2, 'cracks':3, 'spalling':4}
         right_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
         total_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
         inv_map = {v: k for k, v in classes.items()}
+
         with open(os.path.join(target_split_dir, "query.csv")) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
-            for row in csv_reader:
-                if line_count == 0:
-                    pass
-                else:
-                    if classes[row[1]]==logs[0][line_count-1]:
-                        right_elems[row[1]]+=1
+            # Checking results:
+            if checking == True:                                                   
+                total_positives = 0
+                true_positives = 0
+
+                for row in csv_reader:
+                    if line_count == 0:
+                        pass
                     else:
-                        print("Confused {} with {} \t {}".format(row[1], inv_map[logs[0][line_count-1]], row[0]))
-                    total_elems[row[1]]+=1
-                line_count += 1
+                        if classes[row[1]]==logs_y[0][line_count-1]:
+                            right_elems[row[1]]+=1
+                        else:
+                            print("Confused {} with {} \t Probabilities: {} \t Image: {}".format(row[1], inv_map[logs_y[0][line_count-1]], logs_prob[0][line_count-1], row[0]))
+                        total_elems[row[1]]+=1
+                    if logs_y[0][line_count-1]==0:
+                        total_positives += 1
+                        if classes[row[1]]==0:
+                            true_positives += 1
+                    line_count += 1
 
+                print(f'Processed {line_count-1} images.')   
+                global_right=0    
+                for class_i in classes:
+                    print('Accuracy for {}: {:.4f}'.format(class_i, right_elems[class_i]/total_elems[class_i]))
+                    global_right+=right_elems[class_i]
+                print('Global accuracy: {:.4f}'.format(global_right/line_count))
+                print('Recall for positive = no deffect: {:.4f}'.format(true_positives/total_positives))
 
-        print(f'Processed {line_count-1} images.')   
-        global_right=0    
-        for class_i in classes:
-            print('Accuracy for {}: {:.4f}'.format(class_i, right_elems[class_i]/total_elems[class_i]))
-            global_right+=right_elems[class_i]
-        print('Global accuracy: {:.4f}'.format(global_right/line_count))
+            else:
+                for row in csv_reader:
+                    if line_count == 0:
+                        pass
+                    else:
+                        print("Image: {} \t is {} \t with probabilities: {}".format(row[0], inv_map[logs_y[0][line_count-1]], logs_prob[0][line_count-1] ))
+                        total_elems[inv_map[logs_y[0][line_count-1]]] += 1
+                    line_count += 1
+                print("\n")
+                for class_i in classes:
+                    print('Images of class {}: \t{:.0f}'.format(class_i, total_elems[class_i]))
 
         return results
 
@@ -128,9 +150,9 @@ class Evaluator:
         tim_builder.init_weights(support=support, y_s=y_s, query=query)
 
         # Run adaptation
-        results = tim_builder.run_adaptation(support=support, query=query, y_s=y_s, callback=callback)
+        probs, results = tim_builder.run_adaptation(support=support, query=query, y_s=y_s, callback=callback)
 
-        return results
+        return probs, results
 
     @eval_ingredient.capture
     def get_tim_builder(self, model, method):
