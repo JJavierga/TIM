@@ -103,14 +103,17 @@ class Evaluator:
                         else:
                             print("Confused {} with {} \t Probabilities: {} \t Image: {}".format(row[1], inv_map[logs_y[0][line_count-1]], logs_prob[0][line_count-1], row[0]))
                         total_elems[row[1]]+=1
-                        if logs_y[0][line_count-1]==0:
+                        if logs_y[0][line_count-1]!=0:
                             total_positives += 1
-                            if classes[row[1]]==0:
+                            if classes[row[1]]!=0:
                                 true_positives += 1
-                        elif classes[row[1]]==0:
-                            false_positives += 1
+                            else:
+                                false_positives += 1           
                         else:
-                            true_negatives += 1
+                            if classes[row[1]]==0:
+                                true_negatives += 1
+                            else:
+                                false_negatives += 1
                     line_count += 1
                 print(f'Processed {line_count-1} images.')   
                 global_right=0    
