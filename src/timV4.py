@@ -56,7 +56,7 @@ class TIM(object):
         preds = logits.argmax(2)
         return preds
 
-    def init_weights(self, support, query, y_s):
+    def init_weights(self, support, query, y_s, y_q):
         """
         inputs:
             support : torch.Tensor of shape [n_task, s_shot, feature_dim]
@@ -76,7 +76,8 @@ class TIM(object):
         self.record_info(new_time=time.time()-t0,
                          support=support,
                          query=query,
-                         y_s=y_s)
+                         y_s=y_s,
+                         y_q=y_q)
         self.model.train()
 
     def compute_lambda(self, support, query, y_s):
@@ -94,7 +95,7 @@ class TIM(object):
         if self.loss_weights[0] == 'auto':
             self.loss_weights[0] = (1 + self.loss_weights[2]) * self.N_s / self.N_q
 
-    def record_info(self, new_time, support, query, y_s):
+    def record_info(self, new_time, support, query, y_s, y_q):
         """
         inputs:
             support : torch.Tensor of shape [n_task, s_shot, feature_dim]
@@ -140,7 +141,7 @@ class TIM_GD(TIM):
         super().__init__(model=model)
         self.lr = lr
 
-    def run_adaptation(self, support, query, y_s, callback):
+    def run_adaptation(self, support, query, y_s, y_q, callback):
         """
         Corresponds to the TIM-GD inference
         inputs:
@@ -175,15 +176,29 @@ class TIM_GD(TIM):
             t1 = time.time()
             self.model.eval()
 
+            
+            P_q = self.get_logits(query).softmax(2).detach()
+            prec = (P_q.argmax(2) == y_q).float().mean()
+            true_positives = ((P_q.argmax(2) != 3) * (y_q != 0)).float().sum()
+            false_positives =  ((P_q.argmax(2) != 3) * (y_q == 0)).float().sum()
+            true_negatives = ((P_q.argmax(2) == 3) * (y_q == 0)).float().sum()
+            false_negatives =  ((P_q.argmax(2) == 3) * (y_q != 0)).float().sum()
+            
             self.record_info(new_time=t1-t0,
                              support=support,
                              query=query,
-                             y_s=y_s)
-            #self.model.train()
+                             y_s=y_s,
+                             y_q=y_q)
+            self.model.train()
             t0 = time.time()
-
+        print(y_s[0])
+        print("\n")
+        print(P_q.argmax(2)[0])
+        print(y_q[0])
+        print(y_q.shape)
+        print(P_q.argmax(2).shape)
         P_q = self.get_logits(query).softmax(2).detach()
-        return P_q.float().tolist(), P_q.argmax(2).float().tolist()
+        return P_q.float().tolist(), P_q.argmax(2).float().tolist(), prec, true_positives, false_positives, true_negatives, false_negatives
 
 class TIM_ADM(TIM):
     @tim_ingredient.capture
