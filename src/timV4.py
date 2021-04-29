@@ -159,6 +159,7 @@ class TIM_GD(TIM):
         optimizer = torch.optim.Adam([self.weights], lr=self.lr)
         y_s_one_hot = get_one_hot(y_s)
         self.model.train()
+
         for i in tqdm(range(self.iter)):
             logits_s = self.get_logits(support)
             logits_q = self.get_logits(query)
@@ -177,12 +178,13 @@ class TIM_GD(TIM):
             self.model.eval()
 
             
+
             P_q = self.get_logits(query).softmax(2).detach()
             prec = (P_q.argmax(2) == y_q).float().mean()
-            true_positives = ((P_q.argmax(2) != 3) * (y_q != 0)).float().sum()
-            false_positives =  ((P_q.argmax(2) != 3) * (y_q == 0)).float().sum()
-            true_negatives = ((P_q.argmax(2) == 3) * (y_q == 0)).float().sum()
-            false_negatives =  ((P_q.argmax(2) == 3) * (y_q != 0)).float().sum()
+            true_positives = ((P_q.argmax(2) != 2) * (y_q != 2)).float().sum()
+            false_positives =  ((P_q.argmax(2) != 2) * (y_q == 2)).float().sum()
+            true_negatives = ((P_q.argmax(2) == 2) * (y_q == 2)).float().sum()
+            false_negatives =  ((P_q.argmax(2) == 2) * (y_q != 2)).float().sum()
             
             self.record_info(new_time=t1-t0,
                              support=support,
@@ -191,12 +193,14 @@ class TIM_GD(TIM):
                              y_q=y_q)
             self.model.train()
             t0 = time.time()
-        print(y_s[0])
-        print("\n")
-        print(P_q.argmax(2)[0])
-        print(y_q[0])
-        print(y_q.shape)
-        print(P_q.argmax(2).shape)
+
+        # print(y_s[0])
+        # print("\n")
+        # print(P_q[0])
+        # print(P_q.argmax(2))
+        # print(y_q[0])
+        # print(y_q.shape)
+        # print(P_q.argmax(2).shape)
         P_q = self.get_logits(query).softmax(2).detach()
         return P_q.float().tolist(), P_q.argmax(2).float().tolist(), prec, true_positives, false_positives, true_negatives, false_negatives
 

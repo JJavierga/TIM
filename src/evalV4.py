@@ -22,7 +22,7 @@ def config():
     target_data_path = None  # Only for cross-domain scenario
     target_split_dir = None  # Only for cross-domain scenario
     plt_metrics = ['accs']
-    shots = [15] #[1, 5]
+    shots = [5] #[1, 5]
     used_set = 'test'  # can also be val for hyperparameter tuning
     fresh_start = True
     checking = True
@@ -35,7 +35,7 @@ class Evaluator:
         self.ex = ex
 
     @eval_ingredient.capture
-    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir, checking, query_shots):
+    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir, checking, query_shots, number_tasks):
         """
         Run the evaluation over all the tasks in parallel
         inputs:
@@ -79,7 +79,7 @@ class Evaluator:
             n_img = 0
             for i in query_shots:
                 n_img += i
-            print('Positive = defect: \n\tFalse positives: {}\n\tFalse negatives: {}\n\tTrue positives: {}\n\tTrue negatives: {}'.format(fp/n_img, fn/n_img, tp/n_img, tn/n_img))
+            print('Positive = defect: \n\tFalse positives: {}\n\tFalse negatives: {}\n\tTrue positives: {}\n\tTrue negatives: {}'.format(fp/(n_img*number_tasks), fn/(n_img*number_tasks), tp/(n_img*number_tasks), tn/(n_img*number_tasks)))
             print('Global accuracy: {:.4f}'.format(acc))
 
         return results
@@ -183,9 +183,9 @@ class Evaluator:
                 all_labels.append(labels)
             all_features = torch.cat(all_features, 0)
             all_labels = torch.cat(all_labels, 0)
-            print("\n")
-            print(all_labels)
-            print("\n")
+            # print("\n")
+            # print(all_features)
+            # print("\n")
             extracted_features_dic = {'concat_features': all_features,
                                       'concat_labels': all_labels
                                       }
@@ -234,9 +234,9 @@ class Evaluator:
                 all_labels.append(labels)
             all_features = torch.cat(all_features, 0)
             all_labels = torch.cat(all_labels, 0)
-            print("\n")
-            print(all_labels)
-            print("\n")
+            # print("\n")
+            # print(all_features)
+            # print("\n")
             extracted_features_dic = {'concat_features': all_features,
                                       'concat_labels': all_labels}
         print(" ==> Saving features to {}".format(filepath))
@@ -263,9 +263,9 @@ class Evaluator:
     
         shots_labels = extracted_features_shots_dic['concat_labels']
         queries_labels = extracted_features_queries_dic['concat_labels']
-        print(shots_labels)
-        print(queries_labels)
-        print("\n")
+        # print(shots_labels)
+        # print(queries_labels)
+        # print("\n")
         #print(queries_labels)
         #print(shots_labels)
         all_classes = torch.unique(shots_labels)
@@ -277,8 +277,10 @@ class Evaluator:
             n_queries+=j  
         y_query = torch.ones((n_queries))     
         last_index = 0
+        # print(samples_classes)
         for each_class in samples_classes:
             class_indexes = torch.where(queries_labels == each_class)[0]
+            # print(class_indexes)
             #print(class_indexes, query_shots[each_class])
             indexes = np.random.choice(a=class_indexes, size=query_shots[each_class], replace=False)
             query_samples.append(queries_features[indexes])
@@ -286,14 +288,16 @@ class Evaluator:
             last_index += query_shots[each_class]
             
         support_samples.append(shots_features)
-        y_support = torch.arange(n_ways)[:, None].repeat(1, shot).reshape(-1)
+        y_support = shots_labels
         #print("\n")
-        print(y_query)
-        print(y_support)
+        # print(y_query)
+        # print(y_support)
         #print(y_support)
         #print("\n")
         z_support = torch.cat(support_samples, 0)
         z_query = torch.cat(query_samples, 0)
+        # print(z_query)
+        # print(z_support)
 
         task = {'z_s': z_support, 'y_s': y_support,
                 'z_q': z_query, 'y_q': y_query}
