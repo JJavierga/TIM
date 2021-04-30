@@ -141,7 +141,7 @@ class TIM_GD(TIM):
         super().__init__(model=model)
         self.lr = lr
 
-    def run_adaptation(self, support, query, y_s, y_q, callback):
+    def run_adaptation(self, support, query, y_s, y_q, callback, n_ways):
         """
         Corresponds to the TIM-GD inference
         inputs:
@@ -181,11 +181,24 @@ class TIM_GD(TIM):
 
             P_q = self.get_logits(query).softmax(2).detach()
             prec = (P_q.argmax(2) == y_q).float().mean()
-            true_positives = ((P_q.argmax(2) != 2) * (y_q != 2)).float().sum()
-            false_positives =  ((P_q.argmax(2) != 2) * (y_q == 2)).float().sum()
-            true_negatives = ((P_q.argmax(2) == 2) * (y_q == 2)).float().sum()
-            false_negatives =  ((P_q.argmax(2) == 2) * (y_q != 2)).float().sum()
-            
+
+            if(n_ways==5):
+                true_positives = ((P_q.argmax(2) != 2) * (y_q != 2)).float().sum()
+                false_positives =  ((P_q.argmax(2) != 2) * (y_q == 2)).float().sum()
+                true_negatives = ((P_q.argmax(2) == 2) * (y_q == 2)).float().sum()
+                false_negatives =  ((P_q.argmax(2) == 2) * (y_q != 2)).float().sum()
+            elif(n_ways==2):
+                true_positives = ((P_q.argmax(2) != 1) * (y_q != 1)).float().sum()
+                false_positives =  ((P_q.argmax(2) != 1) * (y_q == 1)).float().sum()
+                true_negatives = ((P_q.argmax(2) == 1) * (y_q == 1)).float().sum()
+                false_negatives =  ((P_q.argmax(2) == 1) * (y_q != 1)).float().sum()
+            else:
+                true_positives = -1
+                false_positives = -1
+                true_negatives = -1
+                false_negatives =  -1
+
+
             self.record_info(new_time=t1-t0,
                              support=support,
                              query=query,

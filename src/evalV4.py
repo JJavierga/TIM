@@ -35,7 +35,7 @@ class Evaluator:
         self.ex = ex
 
     @eval_ingredient.capture
-    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir, checking, query_shots, number_tasks):
+    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir, checking, query_shots, number_tasks, n_ways):
         """
         Run the evaluation over all the tasks in parallel
         inputs:
@@ -75,7 +75,8 @@ class Evaluator:
 
             prob, assigned, acc, tp, fp, tn, fn = self.run_task(task_dic=tasks,
                                 model=model,
-                                callback=callback)
+                                callback=callback,
+                                n_ways=n_ways)
             n_img = 0
             for i in query_shots:
                 n_img += i
@@ -84,7 +85,7 @@ class Evaluator:
 
         return results
 
-    def run_task(self, task_dic, model, callback):
+    def run_task(self, task_dic, model, callback, n_ways):
 
         # Build the TIM classifier builder
         tim_builder = self.get_tim_builder(model=model)
@@ -108,8 +109,8 @@ class Evaluator:
         tim_builder.init_weights(support=support, y_s=y_s, query=query, y_q=y_q)
 
         # Run adaptation
-        prob, assigned, acc, tp, fp, tn, fn = tim_builder.run_adaptation(support=support, query=query, y_s=y_s, y_q=y_q, callback=callback)
-        
+        prob, assigned, acc, tp, fp, tn, fn = tim_builder.run_adaptation(support=support, query=query, y_s=y_s, y_q=y_q, callback=callback, n_ways=n_ways)
+
         return  prob, assigned, acc, tp, fp, tn, fn
 
     @eval_ingredient.capture
