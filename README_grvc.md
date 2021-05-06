@@ -28,7 +28,7 @@
 
  Everything said before applies to this section. There are only two differences:
 
-- You will to change the configuration file (which is ./scripts/evaluate/img_gd/deffectsV2.sh).
+- You will to change the configuration file which is ./scripts/evaluate/img_gd/deffectsV4.sh. *It is V4, not V2.
 - Add the number of images per class that you want to use in each evaluation step and the number of evaluation step (that will be averaged to obtained final results).
 
  *Remember that now query.csv must have the column of labels as we want to check if the inferred values match the real ones.
