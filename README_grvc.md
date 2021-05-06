@@ -7,7 +7,7 @@
 
 - Backbone: We can use one of the pretrained ones (trained in CUB or miniImageNet) that have been pretrained for input images of size 84x84, but it can be used too for bigger images. Another option would be to train our own backbone (information about that on main readme).
 - Support images: The labeled images. They act as templates.
-- Query images: Set of unlabeled iamges that we want to classify.
+- Query images: Set of unlabeled images that we want to classify.
 
  Main program has been modified to enable completely unbalanced inputs with unknown distributions.
 
@@ -22,4 +22,19 @@
 
  ```(bash)
  bash scripts/evaluate/img_gd/deffectsV2.sh
+ ```
+
+## Checking
+
+ Everything said before applies to this section. There are only two differences:
+
+- You will to change the configuration file (which is ./scripts/evaluate/img_gd/deffectsV2.sh).
+- Add the number of images per class that you want to use in each evaluation step and the number of evaluation step (that will be averaged to obtained final results).
+
+ *Remember that now query.csv must have the column of labels as we want to check if the inferred values match the real ones.
+
+ Finally, execute the following:
+
+ ```(bash)
+ bash scripts/evaluate/img_gd/deffectsV4.sh
  ```
