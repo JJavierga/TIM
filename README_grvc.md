@@ -17,8 +17,7 @@
  *We could also change the architecture and the checkpoint in case of training the backbone ourselves.
 
  Finally, execute the following: 
- '''(bash)
+ ```(bash)
  bash scripts/evaluate/img_gd/deffectsV2.sh
- '''
-
+ ```
 
