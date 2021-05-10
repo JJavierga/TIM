@@ -22,7 +22,7 @@ def config():
     target_data_path = None  # Only for cross-domain scenario
     target_split_dir = None  # Only for cross-domain scenario
     plt_metrics = ['accs']
-    shots = 10 #[1, 5]
+    shots = 5 #[1, 5]
     used_set = 'test'  # can also be val for hyperparameter tuning
     fresh_start = True
     checking = True
@@ -35,7 +35,7 @@ class Evaluator:
         self.ex = ex
 
     @eval_ingredient.capture
-    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir, checking):
+    def run_full_evaluation(self, model, model_path, model_tag, shots, method, callback, target_split_dir, checking, n_ways):
         """
         Run the evaluation over all the tasks in parallel
         inputs:
@@ -76,13 +76,16 @@ class Evaluator:
                                 model=model,
                                 callback=callback)
     
-        classes =  {'nodefect':0,'scaling':1, 'efflorescence':2, 'cracks':3, 'spalling':4}
-        right_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
-        total_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
-        
-        #classes =  {'nodefect':0, 'defect':1}
-        #total_elems = {'nodefect':0, 'defect':1}
-        #right_elems = {'nodefect':0,  'defect':1}
+        if n_ways == 5:
+            classes =  {'nodefect':0,'scaling':1, 'efflorescence':2, 'cracks':3, 'spalling':4}
+            right_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
+            total_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
+            detected_elems = {'nodefect':0, 'scaling':0, 'efflorescence':0, 'cracks':0, 'spalling':0}
+        elif n_ways == 2:
+            classes =  {'nodefect':0, 'defect':1}
+            total_elems = {'nodefect':0, 'defect':1}
+            right_elems = {'nodefect':0,  'defect':1}
+            detected_elems = {'nodefect':0, 'defect':1}
         inv_map = {v: k for k, v in classes.items()}
 
         with open(os.path.join(target_split_dir, "query.csv")) as csv_file:
@@ -90,7 +93,7 @@ class Evaluator:
             line_count = 0
             # Checking results:
             if checking == True:                                                   
-                total_positives = 0
+                false_negatives = 0
                 true_positives = 0
                 false_positives = 0
                 true_negatives = 0
@@ -103,8 +106,8 @@ class Evaluator:
                         else:
                             print("Confused {} with {} \t Probabilities: {} \t Image: {}".format(row[1], inv_map[logs_y[0][line_count-1]], logs_prob[0][line_count-1], row[0]))
                         total_elems[row[1]]+=1
+                        detected_elems[inv_map[logs_y[0][line_count-1]]] += 1
                         if logs_y[0][line_count-1]!=0:
-                            total_positives += 1
                             if classes[row[1]]!=0:
                                 true_positives += 1
                             else:
@@ -121,7 +124,9 @@ class Evaluator:
                     print('Accuracy for {}: {:.4f}'.format(class_i, right_elems[class_i]/total_elems[class_i]))
                     global_right+=right_elems[class_i]
                 print('Global accuracy: {:.4f}'.format(global_right/(line_count-1)))
-                print('Positive = defect: \n\tFalse positives: {}\n\tFalse negatives: {}\n\tTrue positives: {}\n\tTrue negatives: {}'.format(false_positives, total_positives-true_positives, true_positives, true_negatives))
+                print('Positive = defect: \n\tFalse positives: {}\n\tFalse negatives: {}\n\tTrue positives: {}\n\tTrue negatives: {}'.format(false_positives, false_negatives, true_positives, true_negatives))
+                print('Images from real classes: \t{}'.format(total_elems))
+                print('Images from detected classes: \t{}'.format(detected_elems))
 
             else:
                 for row in csv_reader:
@@ -262,15 +267,9 @@ class Evaluator:
         # Load features from memory if previously saved ...
         save_dir = os.path.join(model_path, model_tag, used_set)
         filepath = os.path.join(save_dir, 'output_query.plk')
-        if os.path.isfile(filepath) and (not fresh_start):
-            extracted_features_dic = load_pickle(filepath)
-            print(" ==> Features loaded from {}".format(filepath))
-            return extracted_features_dic
 
-        # ... otherwise just extract them
-        else:
-            print(" ==> Beginning feature extraction")
-            os.makedirs(save_dir, exist_ok=True)
+        print(" ==> Beginning feature extraction")
+        os.makedirs(save_dir, exist_ok=True)
 
         model.eval()
         with torch.no_grad():
@@ -304,13 +303,12 @@ class Evaluator:
         """
         shots_features = extracted_features_shots_dic['concat_features']
         queries_features =  extracted_features_queries_dic['concat_features']
-    
         all_labels = extracted_features_shots_dic['concat_labels']
         all_classes = torch.unique(all_labels)
         samples_classes = np.random.choice(a=all_classes, size=n_ways, replace=False)
         support_samples = []
         query_samples = []
-        
+
         support_samples.append(shots_features)
         query_samples.append(queries_features)
 
@@ -318,7 +316,6 @@ class Evaluator:
         #print(y_support)
         z_support = torch.cat(support_samples, 0)
         z_query = torch.cat(query_samples, 0)
-
         task = {'z_s': z_support, 'y_s': y_support,
                 'z_q': z_query}
         return task
