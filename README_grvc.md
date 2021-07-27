@@ -24,7 +24,12 @@
  bash scripts/evaluate/img_gd/deffectsV2.sh
  ```
 
+ The last modified files are deffects_transductive.sh and deffects_inducitve.sh .
+
+
 ## Checking
+
+Old version:
 
  Everything said before applies to this section. There are only two differences:
 
@@ -35,6 +40,13 @@
 
  Finally, execute the following:
 
+
  ```(bash)
  bash scripts/evaluate/img_gd/deffectsV4.sh
  ```
+
+New version:
+
+ Files reorganized in /tim_gd/deffects_transductive.sh and /inductive/deffects_inductive.sh.
+
+** It is defects and not deffects, but I don't file like renaming it due to interdependencies among files.
